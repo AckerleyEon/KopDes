@@ -1,0 +1,9 @@
+buat agar card pesanan menunggu menjadi list dengan isinya id pesanan, no meja, total pesanan (Rp.xxx), Cancel, Konfiramasi, Detail.
+
+id psanan, no meja, dan total pesanan sesuai di databases
+
+cancel beneran cancel pesanan dan hapus dari databases
+
+Konfirmasi ganti status nya yang menunggu menjasi terkonfirmasi dan sesuaikan juga di databases
+
+Detai lihatkan detail pesanannya ada apaja
