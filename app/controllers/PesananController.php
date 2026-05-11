@@ -121,8 +121,13 @@ class PesananController {
 
             // Hitung total harga dan buat snapshot summary
             foreach ($_SESSION['keranjang'] as $id => $jumlah) {
-                $query = mysqli_query($this->db, "SELECT * FROM menu WHERE id_menu = $id");
-                $menu = mysqli_fetch_assoc($query);
+                $stmt = $this->db->prepare("SELECT * FROM menu WHERE id_menu = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $menu = $result->fetch_assoc();
+                $stmt->close();
+
                 $subtotal = $menu['harga'] * $jumlah;
                 $total_harga += $subtotal;
                 
@@ -142,47 +147,48 @@ class PesananController {
             }
 
             // Simpan pesanan ke tabel pesanan
-            $insert_pesanan = mysqli_query($this->db, "INSERT INTO pesanan (total_harga, no_meja, status) 
-                                                      VALUES ('$total_harga', '$no_meja', 'menunggu')");
+            $status = 'menunggu';
+            $stmt = $this->db->prepare("INSERT INTO pesanan (total_harga, no_meja, status) VALUES (?, ?, ?)");
+            $stmt->bind_param("iis", $total_harga, $no_meja, $status);
+            $stmt->execute();
 
-if ($insert_pesanan) {
+            if ($stmt->affected_rows > 0) {
+                $id_pesanan = $stmt->insert_id;
+                $stmt->close();
 
-    $id_pesanan = mysqli_insert_id($this->db);
+                // Simpan ID pesanan terakhir
+                $_SESSION['last_order_id'] = $id_pesanan;
 
-    // Simpan ID pesanan terakhir
-    $_SESSION['last_order_id'] = $id_pesanan;
+                // Siapkan statement untuk insert detail
+                $stmt_detail = $this->db->prepare(
+                    "INSERT INTO pesanan_detail (id_pesanan, id_menu, harga, jumlah, subtotal) VALUES (?, ?, ?, ?, ?)"
+                );
 
-    foreach ($items as $item) {
+                foreach ($items as $item) {
+                    $stmt_detail->bind_param("iiiii", $id_pesanan, $item['id_menu'], $item['harga'], $item['jumlah'], $item['subtotal']);
+                    $stmt_detail->execute();
+                }
+                $stmt_detail->close();
 
-        $id_m = $item['id_menu'];
-        $hrg  = $item['harga'];
-        $jml  = $item['jumlah'];
-        $sub  = $item['subtotal'];
+                $_SESSION['keranjang_last'] = $summary;
 
-        mysqli_query(
-            $this->db,
-            "INSERT INTO pesanan_detail 
-            (id_pesanan, id_menu, harga, jumlah, subtotal) 
-            VALUES 
-            ('$id_pesanan', '$id_m', '$hrg', '$jml', '$sub')"
-        );
-    }
+                unset($_SESSION['keranjang']);
 
-    $_SESSION['keranjang_last'] = $summary;
-
-    unset($_SESSION['keranjang']);
-
-if (
-    isset($_POST['download_pdf']) &&
-    $_POST['download_pdf'] == '1'
-) {
-    $pdf = $this->generateReceiptPdf($id_pesanan, $no_meja, $summary, $total_harga);
-    $_SESSION['pdf_download'] = $pdf;
-    $_SESSION['pdf_filename'] = 'struk_pesanan_' . $id_pesanan . '_' . date('Ymd_His') . '.pdf';
-}
-    header("Location: index.php?page=checkout&status=success");
-    exit();
-}
+                if (
+                    isset($_POST['download_pdf']) &&
+                    $_POST['download_pdf'] == '1'
+                ) {
+                    $pdf = $this->generateReceiptPdf($id_pesanan, $no_meja, $summary, $total_harga);
+                    $_SESSION['pdf_download'] = $pdf;
+                    $_SESSION['pdf_filename'] = 'struk_pesanan_' . $id_pesanan . '_' . date('Ymd_His') . '.pdf';
+                }
+                header("Location: index.php?page=checkout&status=success");
+                exit();
+            } else {
+                // Handle error, insert failed
+                $stmt->close();
+                die("Gagal menyimpan pesanan.");
+            }
         }
     }
 }

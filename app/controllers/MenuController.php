@@ -1,5 +1,5 @@
 <?php
-require_once '../app/models/Menu.php';
+require_once __DIR__ . '/../models/Menu.php';
 
 class MenuController {
     private $menuModel;
@@ -15,12 +15,12 @@ class MenuController {
     // =========================
 
     public function home() {
-        require_once '../app/views/customer/home.php';
+        require_once __DIR__ . '/../../config/views/customer/home.php';
     }
 
     public function index() {
         $menus = $this->menuModel->getAllMenu();
-        require_once '../app/views/customer/menu.php';
+        require_once __DIR__ . '/../../config/views/customer/menu.php';
     }
 
     // =========================
@@ -35,7 +35,7 @@ class MenuController {
             die("Query Error: " . mysqli_error($this->db));
         }
 
-        require_once '../app/views/admin/menu.php';
+        require_once __DIR__ . '/../../config/views/admin/menu.php';
     }
 
     // =========================

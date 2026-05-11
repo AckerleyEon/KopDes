@@ -146,11 +146,11 @@ switch($page) {
         break;
 
     case 'keranjang': 
-        include '../config/views/customer/keranjang.php'; 
+        include '../../config/views/customer/keranjang.php'; 
         break;
 
     case 'checkout': 
-        include '../config/views/customer/checkout.php'; 
+        include '../../config/views/customer/checkout.php'; 
         break;
 
     case 'proses_checkout': 
@@ -169,14 +169,14 @@ switch($page) {
         break;
 
     case 'sukses': 
-        include '../config/views/customer/sukses.php'; 
+        include '../../config/views/customer/sukses.php'; 
         break;
 
     // --------------------------
     //    HALAMAN ADMIN (PANEL)
     // --------------------------
     case 'login': 
-        include '../config/views/admin/login.php'; 
+        include '../../config/views/admin/login.php'; 
         break;
 
 case 'update_pesanan':

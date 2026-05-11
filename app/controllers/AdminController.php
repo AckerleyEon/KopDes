@@ -91,7 +91,7 @@ class AdminController {
             $sale = $res_sale['total'] ?? 0;
         }
 
-        include __DIR__ . '/../views/admin/dashboard.php';
+        include __DIR__ . '/../../config/views/admin/dashboard.php';
     }
 
     // 3. DAFTAR PESANAN MASUK (Tetap sama)
@@ -131,7 +131,7 @@ ORDER BY p.id_pesanan DESC
         die("Query Error: " . mysqli_error($conn));
     }
 
-    include '../app/views/admin/pesanan.php';
+    include __DIR__ . '/../../config/views/admin/pesanan.php';
 }
     // --- TAMBAHAN TERBARU: FUNGSI RIWAYAT ---
     public function riwayat() {
@@ -139,7 +139,7 @@ ORDER BY p.id_pesanan DESC
         $query = mysqli_query($this->db, "SELECT * FROM pesanan WHERE status = 'terkonfirmasi' ORDER BY tanggal DESC");
         $riwayat = mysqli_fetch_all($query, MYSQLI_ASSOC);
         
-        include '../app/views/admin/riwayat.php';
+        include __DIR__ . '/../../config/views/admin/riwayat.php';
     }
 public function updatePesanan()
 {
@@ -152,12 +152,12 @@ public function updatePesanan()
 
         if (in_array($status, $allowed)) {
 
-            mysqli_query(
-                $this->db,
-                "UPDATE pesanan 
-                 SET status='$status' 
-                 WHERE id_pesanan='$id'"
-            );
+            // Menggunakan prepared statement untuk keamanan
+            $stmt = $this->db->prepare("UPDATE pesanan SET status = ? WHERE id_pesanan = ?");
+            // 's' berarti string, 'i' berarti integer
+            $stmt->bind_param("si", $status, $id);
+            $stmt->execute();
+            $stmt->close();
         }
 
         // 🔥 FIX INI: kembali ke halaman sebelumnya
@@ -170,11 +170,14 @@ public function updatePesanan()
 
     public function hapusMenu(){
 
-    $id = $_GET['id'];
-
-    $query = mysqli_query($this->db,
-        "DELETE FROM menu WHERE id_menu = '$id'");
-
+    // Menggunakan prepared statement untuk keamanan
+    $id = $_GET['id'] ?? 0;
+    $stmt = $this->db->prepare("DELETE FROM menu WHERE id_menu = ?");
+    // 'i' berarti tipe data integer
+    $stmt->bind_param("i", $id);
+    $stmt->execute();
+    $stmt->close();
+    
     header("Location: index.php?page=admin_menu");
     exit;
 }
@@ -222,16 +225,20 @@ public function tambahMenu(){
         }
     }
 
-$query = "INSERT INTO menu
-        (nama_menu, kategori_menu, harga, deskripsi, gambar, status)
-        VALUES
-        ('$nama', '$kategori', '$harga', '$deskripsi', '$gambar', 'tersedia')";
+    $status = 'tersedia';
+    $stmt = $this->db->prepare(
+        "INSERT INTO menu (nama_menu, kategori_menu, harga, deskripsi, gambar, status)
+         VALUES (?, ?, ?, ?, ?, ?)"
+    );
+    // s = string, i = integer
+    $stmt->bind_param("ssisss", $nama, $kategori, $harga, $deskripsi, $gambar, $status);
+    $stmt->execute();
 
-    $insert = mysqli_query($this->db, $query);
-
-    if(!$insert){
-        die(mysqli_error($this->db));
+    if ($stmt->affected_rows <= 0) {
+        die("Gagal menambahkan menu: " . $stmt->error);
     }
+
+    $stmt->close();
 
     header("Location: index.php?page=admin_menu");
     exit;
@@ -348,17 +355,22 @@ $query = "INSERT INTO menu
         );
     }
 
-$query = "UPDATE menu SET
-            nama_menu      = '$nama',
-            kategori_menu  = '$kategori',
-            harga          = '$harga',
-            deskripsi      = '$deskripsi',
-            status         = '$status',
-            gambar         = '$gambar'
-        WHERE id_menu = '$id'";
-
-    mysqli_query($this->db, $query);
-
+    // Menggunakan prepared statement untuk keamanan
+    $stmt = $this->db->prepare(
+        "UPDATE menu SET
+            nama_menu      = ?,
+            kategori_menu  = ?,
+            harga          = ?,
+            deskripsi      = ?,
+            status         = ?,
+            gambar         = ?
+        WHERE id_menu = ?"
+    );
+    // s = string, i = integer, d = double
+    $stmt->bind_param("ssisssi", $nama, $kategori, $harga, $deskripsi, $status, $gambar, $id);
+    $stmt->execute();
+    $stmt->close();
+    
     header("Location: index.php?page=admin_menu");
     exit;
 }
